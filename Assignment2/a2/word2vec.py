@@ -127,16 +127,14 @@ def negSamplingLossAndGradient(
     gradCenterVec = gradCenterVec.ravel() - sigmoid(-outsideVectors[outsideWordIdx].dot(centerWordVec)) * outsideVectors[outsideWordIdx, :]
 
     # outsideVectors
-    V = len(outsideVectors)
-    d = len(centerWordVec)
-    gradOutsideVecs = np.multiply(
-        np.tile(centerWordVec, (V, 1)),
-        np.tile(sigmoid(outsideVectors.dot(centerWordVec)).reshape(-1, 1), (1, d))
-    )
-    gradOutsideVecs[outsideWordIdx, :] = - centerWordVec * sigmoid(- outsideVectors[outsideWordIdx].dot(centerWordVec))
+    gradOutsideVecs = np.zeros(outsideVectors.shape)
+    for wIdx in negSampleWordIndices:
+        z = sigmoid(outsideVectors[wIdx, :].dot(centerWordVec))
+        gradOutsideVecs[wIdx, :] += z * centerWordVec
+    z = sigmoid(-outsideVectors[outsideWordIdx, :].dot(centerWordVec))
+    gradOutsideVecs[outsideWordIdx, :] -= z * centerWordVec
 
     ### Please use your implementation of sigmoid in here.
-
 
     ### END YOUR CODE
 
@@ -179,9 +177,10 @@ def skipgram(currentCenterWord, windowSize, outsideWords, word2Ind,
     gradOutsideVectors = np.zeros(outsideVectors.shape)
 
     ### YOUR CODE HERE
+
+    centerWordIdx = word2Ind[currentCenterWord]
+    centerWordVec = centerWordVectors[centerWordIdx]
     for o in outsideWords:
-        centerWordIdx = word2Ind[currentCenterWord]
-        centerWordVec = centerWordVectors[centerWordIdx]
         outsideWordIdx = word2Ind[o]
         loss_j, gradCenterVec_j, gradOutsideVecs_j = word2vecLossAndGradient(centerWordVec, outsideWordIdx, outsideVectors, dataset)
         loss += loss_j
