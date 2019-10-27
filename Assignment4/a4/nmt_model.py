@@ -119,7 +119,7 @@ class NMT(nn.Module):
         enc_hiddens, dec_init_state = self.encode(source_padded, source_lengths)
         enc_masks = self.generate_sent_masks(enc_hiddens, source_lengths)
         combined_outputs = self.decode(enc_hiddens, enc_masks, dec_init_state, target_padded)
-        P = F.log_softmax(self.target_vocab_projection(combined_outputs), dim=-1)  # (tgt_len, b, Vt)
+        P = F.log_softmax(self.target_vocab_projection(combined_outputs), dim=-1)  # (tgt_len-1, b, Vt)
 
         # Zero out, probabilities for which we have nothing in the target text
         target_masks = (target_padded != self.vocab.tgt['<pad>']).float()
@@ -219,7 +219,7 @@ class NMT(nn.Module):
         @param target_padded (Tensor): Gold-standard padded target sentences (tgt_len, b), where
                                        tgt_len = maximum target sentence length, b = batch size. 
 
-        @returns combined_outputs (Tensor): combined output tensor  (tgt_len, b,  h), where
+        @returns combined_outputs (Tensor): combined output tensor  (tgt_len-1, b,  h), where
                                         tgt_len = maximum target sentence length, b = batch_size,  h = hidden size
         """
         # Chop of the <END> token for max length sentences.
@@ -282,11 +282,11 @@ class NMT(nn.Module):
                 tensors=(y_t, o_prev),  # o_prev: (b, h)
                 dim=1
             )
-            dec_state, combined_output, e_t = self.step(ybar_t, dec_state, enc_hiddens, enc_hiddens_proj, enc_masks)
-            combined_outputs.append(combined_output)  # combined_output: (b, h)
-            o_prev = combined_output
+            dec_state, o_t, e_t = self.step(ybar_t, dec_state, enc_hiddens, enc_hiddens_proj, enc_masks)
+            combined_outputs.append(o_t)  # combined_output: (b, h)
+            o_prev = o_t
 
-        combined_outputs = torch.stack(combined_outputs, dim=0)  # (tgt_len, b, h)
+        combined_outputs = torch.stack(combined_outputs, dim=0)  # (tgt_len-1, b, h)
         return combined_outputs
 
 
@@ -352,6 +352,7 @@ class NMT(nn.Module):
         ### END YOUR CODE
 
         # Set e_t to -inf where enc_masks has 1
+        # Effectively, this make the probability 0 for mask=1
         if enc_masks is not None:
             e_t.data.masked_fill_(enc_masks.byte(), -float('inf'))
 
