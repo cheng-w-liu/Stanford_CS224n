@@ -1,7 +1,12 @@
 *~
+*.zip
 *.pyc
 *.idea
 *.DS_Store
 Assignment2/a2/utils/datasets/
+Assignment4/a4/en_es_data/
+Assignment4/a4/sanity_check_en_es_data/
+Assignment4/a4/vocab.json
 *.npy
 *.pickle
+*collect_submission.sh
