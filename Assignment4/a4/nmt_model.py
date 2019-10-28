@@ -272,9 +272,9 @@ class NMT(nn.Module):
         ###         https://pytorch.org/docs/stable/torch.html#torch.stack
 
         ### END YOUR CODE
-        enc_hiddens_proj = self.h_projection(enc_hiddens)
+        enc_hiddens_proj = self.h_projection(enc_hiddens)  # (b, src_len, h)
 
-        Y = self.model_embeddings.target(target_padded)  # Y: (tgt_len, batch. embed_size)
+        Y = self.model_embeddings.target(target_padded)  # Y: (tgt_len-1, batch. embed_size)
 
         for y_t in torch.split(Y, split_size_or_sections=1, dim=0):
             y_t = torch.squeeze(y_t, dim=0) # (b, e)
@@ -283,7 +283,7 @@ class NMT(nn.Module):
                 dim=1
             )
             dec_state, o_t, e_t = self.step(ybar_t, dec_state, enc_hiddens, enc_hiddens_proj, enc_masks)
-            combined_outputs.append(o_t)  # combined_output: (b, h)
+            combined_outputs.append(o_t)
             o_prev = o_t
 
         combined_outputs = torch.stack(combined_outputs, dim=0)  # (tgt_len-1, b, h)
@@ -306,7 +306,7 @@ class NMT(nn.Module):
         @param enc_hiddens_proj (Tensor): Encoder hidden states Tensor, projected from (h * 2) to h. Tensor is with shape (b, src_len, h),
                                     where b = batch size, src_len = maximum source length, h = hidden size.
         @param enc_masks (Tensor): Tensor of sentence masks shape (b, src_len),
-                                    where b = batch size, src_len is maximum source length. 
+                                    where b = batch size, src_len is maximum source length.
 
         @returns dec_state (tuple (Tensor, Tensor)): Tuple of tensors both shape (b, h), where b = batch size, h = hidden size.
                 First tensor is decoder's new hidden state, second tensor is decoder's new cell.
@@ -345,14 +345,14 @@ class NMT(nn.Module):
         dec_state = self.decoder(Ybar_t, dec_state)
         (dec_hidden, dec_cell) = dec_state  # dec_hidden: (b, h)
         e_t = torch.bmm(
-            torch.Tensor.permute(torch.unsqueeze(dec_hidden, 0), (1, 0, 2)),  # (1, b, h)  -> (b, 1, h)
-            torch.Tensor.permute(enc_hiddens_proj, (0, 2, 1))  # (b, src_len, h) -> (b, h, src_len)
-        )  # (b, 1, src_len)
-        e_t = torch.squeeze(e_t, 1)  # (b, 1, src_len) -> (b, src_len)
+            enc_hiddens_proj,   # (b, src_len, h)
+            torch.unsqueeze(dec_hidden, 2)  # (b, h) -> (b, h, 1)
+        )  # (b, src_len, 1)
+        e_t = torch.squeeze(e_t, 2)  # (b, src_len, 1) -> (b_src_len)
         ### END YOUR CODE
 
         # Set e_t to -inf where enc_masks has 1
-        # Effectively, this make the probability 0 for mask=1
+        # Effectively, this makes the probability equal to 0 for mask=1
         if enc_masks is not None:
             e_t.data.masked_fill_(enc_masks.byte(), -float('inf'))
 
@@ -383,13 +383,13 @@ class NMT(nn.Module):
         ###         https://pytorch.org/docs/stable/torch.html#torch.cat
         ###     Tanh:
         ###         https://pytorch.org/docs/stable/torch.html#torch.tanh
-        alpha_t = F.softmax(e_t, dim=1)  # e_t: (b, src_len)
+        alpha_t = F.softmax(e_t, dim=1)  # (b, src_len)
         a_t = torch.bmm(
-            torch.Tensor.permute(enc_hiddens, (0, 2, 1)),  # (b, src_len, h*2) -> (b, h*2, src_len)
-            alpha_t.view((alpha_t.shape[0], alpha_t.shape[1], -1))  # (b, src_len) -> (b, src_len, 1)
-        )  # (b, h*2, 1)
-        a_t = torch.squeeze(a_t, 2)  # (b, h*2, 1) -> (b, h*2)
-        u_t = torch.cat((dec_hidden, a_t), dim=1)  # (b, h*3)
+            torch.unsqueeze(alpha_t, 1),  # (b, src_len) -> (b, 1, src_len)
+            enc_hiddens  # (b, src_len, h*2)
+        )  # (b, 1, h*2)
+        a_t = torch.squeeze(a_t, 1) # (b, 1, h*2) -> (b, h*2)
+        u_t = torch.cat((a_t, dec_hidden), dim=1)  # (b, h*3)
         v_t = self.combined_output_projection(u_t)  # (b, h)
         o_t = self.dropout(torch.tanh(v_t))  # (b, h)
         ### END YOUR CODE
