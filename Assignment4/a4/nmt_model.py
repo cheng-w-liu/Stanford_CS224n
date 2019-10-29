@@ -280,7 +280,7 @@ class NMT(nn.Module):
         for y_t in torch.split(Y, split_size_or_sections=1, dim=0):
             y_t = torch.squeeze(y_t, dim=0) # (b, e)
             ybar_t = torch.cat(
-                tensors=(y_t, o_prev),  # o_prev: (b, h)
+                tensors=(o_prev, y_t),  # o_prev: (b, h)
                 dim=1
             )
             dec_state, o_t, e_t = self.step(ybar_t, dec_state, enc_hiddens, enc_hiddens_proj, enc_masks)
