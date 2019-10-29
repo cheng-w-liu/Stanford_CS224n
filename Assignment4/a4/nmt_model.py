@@ -76,7 +76,8 @@ class NMT(nn.Module):
             input_size=embed_size,
             hidden_size=hidden_size,
             batch_first=False,
-            bidirectional=True
+            bidirectional=True,
+            dropout=dropout_rate
         )
         self.decoder = nn.LSTMCell(
             input_size=embed_size + hidden_size,
