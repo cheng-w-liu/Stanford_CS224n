@@ -345,11 +345,18 @@ class NMT(nn.Module):
 
         dec_state = self.decoder(Ybar_t, dec_state)
         (dec_hidden, dec_cell) = dec_state  # dec_hidden: (b, h)
-        e_t = torch.bmm(
-            enc_hiddens_proj,   # (b, src_len, h)
-            torch.unsqueeze(dec_hidden, 2)  # (b, h) -> (b, h, 1)
-        )  # (b, src_len, 1)
-        e_t = torch.squeeze(e_t, 2)  # (b, src_len, 1) -> (b_src_len)
+        e_t = torch.squeeze(
+            torch.bmm(
+                enc_hiddens_proj,   # (b, src_len, h)
+                torch.unsqueeze(dec_hidden, 2)  # (b, h) -> (b, h, 1)
+            ),
+        2)  # (b, src_len, 1) -> (b_src_len)
+
+        #e_t = torch.bmm(
+        #    enc_hiddens_proj,   # (b, src_len, h)
+        #    torch.unsqueeze(dec_hidden, 2)  # (b, h) -> (b, h, 1)
+        #)  # (b, src_len, 1)
+        #e_t = torch.squeeze(e_t, 2)  # (b, src_len, 1) -> (b_src_len)
         ### END YOUR CODE
 
         # Set e_t to -inf where enc_masks has 1
@@ -385,11 +392,19 @@ class NMT(nn.Module):
         ###     Tanh:
         ###         https://pytorch.org/docs/stable/torch.html#torch.tanh
         alpha_t = F.softmax(e_t, dim=1)  # (b, src_len)
-        a_t = torch.bmm(
-            torch.unsqueeze(alpha_t, 1),  # (b, src_len) -> (b, 1, src_len)
-            enc_hiddens  # (b, src_len, h*2)
-        )  # (b, 1, h*2)
-        a_t = torch.squeeze(a_t, 1) # (b, 1, h*2) -> (b, h*2)
+
+        a_t = torch.squeeze(
+            torch.bmm(
+              torch.unsqueeze(alpha_t, 1),  # (b, src_len) -> (b, 1, src_len)
+              enc_hiddens  # (b, src_len, h*2)
+            ),  # (b, 1, h*2)
+        1)  #(b, 1, h*2) -> (b, h*2)
+
+        #a_t = torch.bmm(
+        #    torch.unsqueeze(alpha_t, 1),  # (b, src_len) -> (b, 1, src_len)
+        #    enc_hiddens  # (b, src_len, h*2)
+        #)  # (b, 1, h*2)
+        #a_t = torch.squeeze(a_t, 1) # (b, 1, h*2) -> (b, h*2)
         u_t = torch.cat((a_t, dec_hidden), dim=1)  # (b, h*3)
         v_t = self.combined_output_projection(u_t)  # (b, h)
         o_t = self.dropout(torch.tanh(v_t))  # (b, h)
