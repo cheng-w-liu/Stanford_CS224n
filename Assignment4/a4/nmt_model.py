@@ -87,7 +87,7 @@ class NMT(nn.Module):
         self.c_projection = nn.Linear(2*hidden_size, hidden_size, bias=False)
         self.att_projection = nn.Linear(2*hidden_size, hidden_size, bias=False)
         self.combined_output_projection = nn.Linear(3*hidden_size, hidden_size, bias=False)
-        self.target_vocab_projection = nn.Linear(hidden_size, len(vocab.tgt), bias=False)
+        self.target_vocab_projection = nn.Linear(hidden_size, self.model_embeddings.target.weight.shape[0], bias=False)
         self.dropout = nn.Dropout(p=dropout_rate)
         ### END YOUR CODE
 
@@ -184,7 +184,7 @@ class NMT(nn.Module):
         output, (last_hidden, last_cell) = self.encoder(
             input=pack_padded_sequence(
                     input=X,
-                    lengths=torch.LongTensor(source_lengths)
+                    lengths=source_lengths
                 )
         )
         enc_hiddens, _ = pad_packed_sequence(output, batch_first=True)
