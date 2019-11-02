@@ -191,7 +191,7 @@ class NMT(nn.Module):
                     lengths=source_lengths
                 )
         )
-        enc_hiddens = pad_packed_sequence(output, batch_first=True)[0]
+        enc_hiddens, _ = pad_packed_sequence(output, batch_first=True)
 
         init_decoder_hidden = self.h_projection(
             torch.cat(
