@@ -279,8 +279,10 @@ class NMT(nn.Module):
 
         for y_t in torch.split(Y, split_size_or_sections=1, dim=0):
             y_t = torch.squeeze(y_t, dim=0) # (b, e)
+
+            # o_prev: (b, h)
             ybar_t = torch.cat(
-                tensors=(o_prev, y_t),  # o_prev: (b, h)
+                tensors=(o_prev, y_t),
                 dim=1
             )
             dec_state, o_t, e_t = self.step(ybar_t, dec_state, enc_hiddens, enc_hiddens_proj, enc_masks)
@@ -345,10 +347,13 @@ class NMT(nn.Module):
 
         dec_state = self.decoder(Ybar_t, dec_state)
         (dec_hidden, dec_cell) = dec_state  # dec_hidden: (b, h)
+
+        # enc_hiddens_proj: (b, src_len, h)
+        # torch.unsqueeze(dec_hidden, 2)  # (b, h) -> (b, h, 1)
         e_t = torch.squeeze(
             torch.bmm(
-                enc_hiddens_proj,   # (b, src_len, h)
-                torch.unsqueeze(dec_hidden, 2)  # (b, h) -> (b, h, 1)
+                enc_hiddens_proj,
+                torch.unsqueeze(dec_hidden, 2)
             ),
         2)  # (b, src_len, 1) -> (b_src_len)
 
@@ -393,11 +398,13 @@ class NMT(nn.Module):
         ###         https://pytorch.org/docs/stable/torch.html#torch.tanh
         alpha_t = F.softmax(e_t, dim=1)  # (b, src_len)
 
+        # torch.unsqueeze(alpha_t, 1):  # (b, src_len) -> (b, 1, src_len)
+        # enc_hiddens:  # (b, src_len, h*2)
         a_t = torch.squeeze(
             torch.bmm(
-              torch.unsqueeze(alpha_t, 1),  # (b, src_len) -> (b, 1, src_len)
-              enc_hiddens  # (b, src_len, h*2)
-            ),  # (b, 1, h*2)
+              torch.unsqueeze(alpha_t, 1),
+              enc_hiddens
+            ),
         1)  #(b, 1, h*2) -> (b, h*2)
 
         #a_t = torch.bmm(
