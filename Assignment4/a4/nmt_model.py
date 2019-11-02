@@ -87,7 +87,7 @@ class NMT(nn.Module):
         self.c_projection = nn.Linear(2*hidden_size, hidden_size, bias=False)
         self.att_projection = nn.Linear(2*hidden_size, hidden_size, bias=False)
         self.combined_output_projection = nn.Linear(3*hidden_size, hidden_size, bias=False)
-        self.target_vocab_projection = nn.Linear(hidden_size, len(vocab.tgt))  #, bias=False)
+        self.target_vocab_projection = nn.Linear(hidden_size, len(vocab.tgt), bias=False)
         self.dropout = nn.Dropout(p=dropout_rate)
         ### END YOUR CODE
 
@@ -118,7 +118,11 @@ class NMT(nn.Module):
         ###        combined_outputs returned by the `self.decode()` function.
 
         enc_hiddens, dec_init_state = self.encode(source_padded, source_lengths)
+
+        # enc_hiddens: (b, src_len, h)
+        # enc_masks: (b, src_len)
         enc_masks = self.generate_sent_masks(enc_hiddens, source_lengths)
+
         combined_outputs = self.decode(enc_hiddens, enc_masks, dec_init_state, target_padded)
         P = F.log_softmax(self.target_vocab_projection(combined_outputs), dim=-1)  # (tgt_len-1, b, Vt)
 
@@ -187,7 +191,7 @@ class NMT(nn.Module):
                     lengths=source_lengths
                 )
         )
-        enc_hiddens, _ = pad_packed_sequence(output, batch_first=True)
+        enc_hiddens = pad_packed_sequence(output, batch_first=True)[0]
 
         init_decoder_hidden = self.h_projection(
             torch.cat(
@@ -355,13 +359,9 @@ class NMT(nn.Module):
                 enc_hiddens_proj,
                 torch.unsqueeze(dec_hidden, 2)
             ),
-        2)  # (b, src_len, 1) -> (b, src_len)
+            dim=2
+        ) # (b, src_len, 1) -> (b, src_len)
 
-        #e_t = torch.bmm(
-        #    enc_hiddens_proj,   # (b, src_len, h)
-        #    torch.unsqueeze(dec_hidden, 2)  # (b, h) -> (b, h, 1)
-        #)  # (b, src_len, 1)
-        #e_t = torch.squeeze(e_t, 2)  # (b, src_len, 1) -> (b_src_len)
         ### END YOUR CODE
 
         # Set e_t to -inf where enc_masks has 1
@@ -405,13 +405,9 @@ class NMT(nn.Module):
               torch.unsqueeze(alpha_t, 1),
               enc_hiddens
             ),
-        1)  #(b, 1, h*2) -> (b, h*2)
+            dim=1
+        )  #(b, 1, h*2) -> (b, h*2)
 
-        #a_t = torch.bmm(
-        #    torch.unsqueeze(alpha_t, 1),  # (b, src_len) -> (b, 1, src_len)
-        #    enc_hiddens  # (b, src_len, h*2)
-        #)  # (b, 1, h*2)
-        #a_t = torch.squeeze(a_t, 1) # (b, 1, h*2) -> (b, h*2)
         u_t = torch.cat((a_t, dec_hidden), dim=1)  # (b, h*3)
         v_t = self.combined_output_projection(u_t)  # (b, h)
         o_t = self.dropout(torch.tanh(v_t))  # (b, h)
