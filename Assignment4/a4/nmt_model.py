@@ -80,14 +80,14 @@ class NMT(nn.Module):
             dropout=dropout_rate
         )
         self.decoder = nn.LSTMCell(
-            input_size=embed_size + hidden_size,
+            input_size=hidden_size + embed_size,
             hidden_size=hidden_size,
         )
         self.h_projection = nn.Linear(2*hidden_size, hidden_size, bias=False)
         self.c_projection = nn.Linear(2*hidden_size, hidden_size, bias=False)
         self.att_projection = nn.Linear(2*hidden_size, hidden_size, bias=False)
         self.combined_output_projection = nn.Linear(3*hidden_size, hidden_size, bias=False)
-        self.target_vocab_projection = nn.Linear(hidden_size, self.model_embeddings.target.weight.shape[0], bias=False)
+        self.target_vocab_projection = nn.Linear(hidden_size, len(vocab.tgt), bias=False)
         self.dropout = nn.Dropout(p=dropout_rate)
         ### END YOUR CODE
 
@@ -273,7 +273,7 @@ class NMT(nn.Module):
         ###         https://pytorch.org/docs/stable/torch.html#torch.stack
 
         ### END YOUR CODE
-        enc_hiddens_proj = self.h_projection(enc_hiddens)  # (b, src_len, h)
+        enc_hiddens_proj = self.att_projection(enc_hiddens)  # (b, src_len, h)
 
         Y = self.model_embeddings.target(target_padded)  # Y: (tgt_len-1, batch. embed_size)
 
