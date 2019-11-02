@@ -87,7 +87,7 @@ class NMT(nn.Module):
         self.c_projection = nn.Linear(2*hidden_size, hidden_size, bias=False)
         self.att_projection = nn.Linear(2*hidden_size, hidden_size, bias=False)
         self.combined_output_projection = nn.Linear(3*hidden_size, hidden_size, bias=False)
-        self.target_vocab_projection = nn.Linear(hidden_size, len(vocab.tgt), bias=False)
+        self.target_vocab_projection = nn.Linear(hidden_size, len(vocab.tgt))  #, bias=False)
         self.dropout = nn.Dropout(p=dropout_rate)
         ### END YOUR CODE
 
@@ -191,14 +191,14 @@ class NMT(nn.Module):
 
         init_decoder_hidden = self.h_projection(
             torch.cat(
-                tensors=(last_hidden[0], last_hidden[1]),
+                tensors=(last_hidden[0, :], last_hidden[1, :]),
                 dim=1
             )
         )
 
         init_decoder_cell = self.c_projection(
             torch.cat(
-                tensors=(last_cell[0], last_cell[1]),
+                tensors=(last_cell[0, :], last_cell[1, :]),
                 dim=1
             )
         )
@@ -277,15 +277,15 @@ class NMT(nn.Module):
 
         Y = self.model_embeddings.target(target_padded)  # Y: (tgt_len-1, batch. embed_size)
 
-        for y_t in torch.split(Y, split_size_or_sections=1, dim=0):
-            y_t = torch.squeeze(y_t, dim=0) # (b, e)
+        for Y_t in torch.split(Y, split_size_or_sections=1, dim=0):
+            Y_t = torch.squeeze(Y_t, dim=0) # (b, e)
 
             # o_prev: (b, h)
-            ybar_t = torch.cat(
-                tensors=(o_prev, y_t),
+            Ybar_t = torch.cat(
+                tensors=(Y_t, o_prev),
                 dim=1
             )
-            dec_state, o_t, e_t = self.step(ybar_t, dec_state, enc_hiddens, enc_hiddens_proj, enc_masks)
+            dec_state, o_t, e_t = self.step(Ybar_t, dec_state, enc_hiddens, enc_hiddens_proj, enc_masks)
             combined_outputs.append(o_t)
             o_prev = o_t
 
@@ -355,7 +355,7 @@ class NMT(nn.Module):
                 enc_hiddens_proj,
                 torch.unsqueeze(dec_hidden, 2)
             ),
-        2)  # (b, src_len, 1) -> (b_src_len)
+        2)  # (b, src_len, 1) -> (b, src_len)
 
         #e_t = torch.bmm(
         #    enc_hiddens_proj,   # (b, src_len, h)
