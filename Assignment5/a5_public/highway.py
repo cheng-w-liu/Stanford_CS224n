@@ -11,7 +11,7 @@ import torch.nn.functional as F
 
 ### YOUR CODE HERE for part 1h
 class Highway(nn.Module):
-    def __init__(self, emb_dim):
+    def __init__(self, emb_dim=256):
         """
         Highway network defined in Eq.(8) - Eq.(10)
 
