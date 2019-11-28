@@ -14,7 +14,7 @@ class CNN(nn.Module):
     Implemented 1D Convolutional layer on text data
     """
 
-    def __init__(self, word_embed_dim, char_embed_dim=50, kernel_size=5):
+    def __init__(self, word_embed_dim=256, char_embed_dim=50, kernel_size=5):
         """
         1D Convolutional Network
         :param char_embed_dim: dimension for the character embedding
