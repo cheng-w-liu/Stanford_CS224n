@@ -21,7 +21,7 @@ def main():
     #print(X_reshaped)
 
     word_embed = 4
-    cnn = CNN(char_embed, word_embed, 2)
+    cnn = CNN(word_embed, char_embed, 2)
     X_conv_out = cnn(X_reshaped)
 
     #print('X_conv_out:')
