@@ -40,11 +40,16 @@ class CNN(nn.Module):
 
         # X_conv shape: (batch_size, word_embed, m_word-k+1)
         X_conv = self.cnn_layer(X_reshaped)
+
+        # torch.max_pool1d
+        #  input size: (N, C, L)
+        #  output size: (N, C, L_out)
         X_conv_out = torch.squeeze(
             F.max_pool1d(
                 F.relu(X_conv),
                 max_word_len-self.kernel_size+1
-            )
+            ),
+            dim=-1
         )
         return X_conv_out
 
