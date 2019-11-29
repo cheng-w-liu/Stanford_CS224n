@@ -37,6 +37,7 @@ class ModelEmbeddings(nn.Module):
 
         pad_token_idx = vocab.char2id['<pad>']
         char_embed_dim = 50
+        self.embed_size = embed_size
         self.embeddings = nn.Embedding(len(vocab.char2id), char_embed_dim, padding_idx=pad_token_idx)
 
         ### YOUR CODE HERE for part 1j
