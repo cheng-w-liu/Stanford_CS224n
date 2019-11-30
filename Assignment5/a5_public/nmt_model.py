@@ -125,10 +125,11 @@ class NMT(nn.Module):
 
 
         if self.charDecoder is not None:
+            # target_padded_chars shape: (max_sentence_length, batch_size, max_word_length)
             max_word_len = target_padded_chars.shape[-1]
 
             target_words = target_padded[1:].contiguous().view(-1)
-            target_chars = target_padded_chars[1:].view(-1, max_word_len)
+            target_chars = target_padded_chars[1:].contiguous().view(-1, max_word_len)
             target_outputs = combined_outputs.view(-1, 256)
 
             target_chars_oov = target_chars #torch.index_select(target_chars, dim=0, index=oovIndices)
