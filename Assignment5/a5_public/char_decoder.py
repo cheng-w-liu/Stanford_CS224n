@@ -133,7 +133,7 @@ class CharDecoder(nn.Module):
             s_t = torch.squeeze(s_t, dim=0) # (batch_size, V_char)
             indices = torch.max(s_t, dim=1)[1]  # (batch_size, )
 
-            curr_chars = [self.target_vocab.id2char[idx] for idx in indices.numpy()]
+            curr_chars = [self.target_vocab.id2char[idx.item()] for idx in indices]
             for i, w in enumerate(output_words):
                 output_words[i] = output_words[i] + curr_chars[i]
 
