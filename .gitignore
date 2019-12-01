@@ -10,3 +10,9 @@ Assignment4/a4/vocab.json
 *.npy
 *.pickle
 *collect_submission.sh
+model.bin*
+*.json
+Assignment4/a5/en_es_data/
+Assignment4/a5/sanity_check_en_es_data/
+
+
